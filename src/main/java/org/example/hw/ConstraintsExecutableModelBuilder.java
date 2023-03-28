@@ -4,14 +4,18 @@ import static org.drools.model.DSL.*;
 import static org.drools.model.PatternDSL.*;
 
 import org.drools.model.Global;
+import org.drools.model.Index;
 import org.drools.model.Rule;
 import org.drools.model.Variable;
+import org.drools.model.functions.Function1;
 import org.example.hw.domain.BusStop;
 import org.example.hw.domain.Coach;
 import org.example.hw.domain.Shuttle;
 import org.example.hw.domain.StopOrHub;
 import org.kie.api.runtime.rule.RuleContext;
 import org.optaplanner.constraint.drl.holder.HardSoftLongScoreHolderImpl;
+
+import java.util.function.Function;
 
 public class ConstraintsExecutableModelBuilder {
 
@@ -56,7 +60,8 @@ public class ConstraintsExecutableModelBuilder {
                         .expr(shuttle -> shuttle.getDestination() != null)
                         .bind(destinationVariable, Shuttle::getDestination),
                 pattern(stopOrHubVariable)
-                        .expr(destinationVariable, StopOrHub::equals)
+                        .expr("matchDestination", destinationVariable, StopOrHub::equals,
+                                betaIndexedBy(StopOrHub.class, Index.ConstraintType.EQUAL, 1, stopOrHub -> stopOrHub, stopOrHub -> stopOrHub))
                         .expr(stopOrHub -> stopOrHub.isVisitedByCoach() == false),
                 on(shuttleVariable, scoreHolderGlobal)
                         .execute((kcontext, shuttle, scoreHolder) -> scoreHolder.addHardConstraintMatch((RuleContext) kcontext,
