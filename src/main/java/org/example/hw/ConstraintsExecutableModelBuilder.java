@@ -4,10 +4,8 @@ import static org.drools.model.DSL.*;
 import static org.drools.model.PatternDSL.*;
 
 import org.drools.model.Global;
-import org.drools.model.Model;
 import org.drools.model.Rule;
 import org.drools.model.Variable;
-import org.drools.model.impl.ModelImpl;
 import org.example.hw.domain.BusStop;
 import org.example.hw.domain.Coach;
 import org.example.hw.domain.Shuttle;
@@ -16,16 +14,6 @@ import org.kie.api.runtime.rule.RuleContext;
 import org.optaplanner.constraint.drl.holder.HardSoftLongScoreHolderImpl;
 
 public class ConstraintsExecutableModelBuilder {
-
-    public static Model buildModel(String scoreHolderName) {
-        Global<HardSoftLongScoreHolderImpl> scoreHolder = globalOf(HardSoftLongScoreHolderImpl.class, "", scoreHolderName);
-
-        Model model = new ModelImpl()
-                .addGlobal(scoreHolder)
-                .addRule(transportTime(scoreHolder));
-
-        return model;
-    }
 
     /**
      * rule "transportTime"
