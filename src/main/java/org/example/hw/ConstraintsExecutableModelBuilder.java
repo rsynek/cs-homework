@@ -1,10 +1,7 @@
 package org.example.hw;
 
-import static org.drools.model.DSL.declarationOf;
-import static org.drools.model.DSL.globalOf;
-import static org.drools.model.DSL.on;
-import static org.drools.model.PatternDSL.pattern;
-import static org.drools.model.PatternDSL.rule;
+import static org.drools.model.DSL.*;
+import static org.drools.model.PatternDSL.*;
 
 import org.drools.model.Global;
 import org.drools.model.Model;
@@ -12,13 +9,16 @@ import org.drools.model.Rule;
 import org.drools.model.Variable;
 import org.drools.model.impl.ModelImpl;
 import org.example.hw.domain.BusStop;
+import org.example.hw.domain.Coach;
+import org.example.hw.domain.Shuttle;
+import org.example.hw.domain.StopOrHub;
 import org.kie.api.runtime.rule.RuleContext;
 import org.optaplanner.constraint.drl.holder.HardSoftLongScoreHolderImpl;
 
 public class ConstraintsExecutableModelBuilder {
 
-    public static Model buildModel() {
-        Global<HardSoftLongScoreHolderImpl> scoreHolder = globalOf(HardSoftLongScoreHolderImpl.class, "", "scoreHolder");
+    public static Model buildModel(String scoreHolderName) {
+        Global<HardSoftLongScoreHolderImpl> scoreHolder = globalOf(HardSoftLongScoreHolderImpl.class, "", scoreHolderName);
 
         Model model = new ModelImpl()
                 .addGlobal(scoreHolder)
@@ -59,8 +59,21 @@ public class ConstraintsExecutableModelBuilder {
      *         scoreHolder.addHardConstraintMatch(kcontext, - 1000000000L);
      * end
      */
-    static Rule shuttleDestinationIsCoachOrHub() {
-        throw new UnsupportedOperationException();
+    static Rule shuttleDestinationIsCoachOrHub(Global<HardSoftLongScoreHolderImpl> scoreHolderGlobal) {
+        Variable<Shuttle> shuttleVariable = declarationOf(Shuttle.class);
+        Variable<StopOrHub> stopOrHubVariable = declarationOf(StopOrHub.class);
+        Variable<StopOrHub> destinationVariable = declarationOf(StopOrHub.class);
+        Rule rule = rule("shuttleDestinationIsCoachOrHub").build(
+                pattern(shuttleVariable)
+                        .expr(shuttle -> shuttle.getDestination() != null)
+                        .bind(destinationVariable, Shuttle::getDestination),
+                pattern(stopOrHubVariable)
+                        .expr(destinationVariable, StopOrHub::equals)
+                        .expr(stopOrHub -> stopOrHub.isVisitedByCoach() == false),
+                on(shuttleVariable, scoreHolderGlobal)
+                        .execute((kcontext, shuttle, scoreHolder) -> scoreHolder.addHardConstraintMatch((RuleContext) kcontext,
+                                -1_000_000_000L)));
+        return rule;
     }
 
     /**
@@ -76,7 +89,27 @@ public class ConstraintsExecutableModelBuilder {
      *         scoreHolder.addHardConstraintMatch(kcontext, ($stopLimit - $stopTotal) * 1000000L);
      * end
      */
-    static Rule coachStopLimit() {
-        throw new UnsupportedOperationException();
+    static Rule coachStopLimit(Global<HardSoftLongScoreHolderImpl> scoreHolderGlobal) {
+
+        Variable<Coach> coachVariable = declarationOf(Coach.class);
+        Variable<Integer> stopLimitVariable = declarationOf(Integer.class);
+        Variable<BusStop> busStopVariable = declarationOf(BusStop.class);
+        Variable<Long> stopTotalVariable = declarationOf(Long.class);
+
+        Rule rule = rule("coachStopLimit").build(
+                pattern(coachVariable)
+                        .bind(stopLimitVariable, Coach::getStopLimit),
+                accumulate(
+                        pattern(busStopVariable)
+                                .expr(coachVariable, (busStop, coach) -> busStop.getBus() == coach),
+                        accFunction(org.drools.core.base.accumulators.CountAccumulateFunction::new, busStopVariable)
+                                .as(stopTotalVariable)),
+                pattern(stopTotalVariable)
+                        .expr(stopLimitVariable, (stopTotal, stopLimit) -> stopTotal > stopLimit),
+                on(stopLimitVariable, stopTotalVariable, scoreHolderGlobal)
+                        .execute((kcontext, stopLimit, stopTotal, scoreHolder) -> {
+                            scoreHolder.addHardConstraintMatch((RuleContext) kcontext, (stopLimit - stopTotal) * 1_000_000L);
+                        }));
+        return rule;
     }
 }
