@@ -7,15 +7,12 @@ import org.drools.model.Global;
 import org.drools.model.Index;
 import org.drools.model.Rule;
 import org.drools.model.Variable;
-import org.drools.model.functions.Function1;
 import org.example.hw.domain.BusStop;
 import org.example.hw.domain.Coach;
 import org.example.hw.domain.Shuttle;
 import org.example.hw.domain.StopOrHub;
 import org.kie.api.runtime.rule.RuleContext;
 import org.optaplanner.constraint.drl.holder.HardSoftLongScoreHolderImpl;
-
-import java.util.function.Function;
 
 public class ConstraintsExecutableModelBuilder {
 
