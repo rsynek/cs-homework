@@ -80,7 +80,6 @@ public class ConstraintsExecutableModelBuilder {
      * end
      */
     static Rule coachStopLimit(Global<HardSoftLongScoreHolderImpl> scoreHolderGlobal) {
-
         Variable<Coach> coachVariable = declarationOf(Coach.class);
         Variable<Integer> stopLimitVariable = declarationOf(Integer.class);
         Variable<BusStop> busStopVariable = declarationOf(BusStop.class);
